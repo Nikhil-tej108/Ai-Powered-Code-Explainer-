@@ -9,6 +9,9 @@ load_dotenv()
 
 app = Flask(__name__)
 
+from flask_cors import CORS
+CORS(app)
+
 # API Keys
 GROQ_API_KEY = os.getenv('GROQ_API_KEY')
 OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
@@ -65,16 +68,26 @@ def explain_code_with_openrouter(code):
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type": "application/json"
     }
+    
+    fallback_models = [
+        "meta-llama/llama-3-70b-instruct",
+        "mistralai/mistral-7b-instruct",
+        "nousresearch/nous-hermes-llama2-13b",
+        "openchat/openchat-3.5-0106",
+        "google/gemma-7b-it"
+    ]
 
-    payload = {
-        "model": "meta-llama/llama-3-70b-instruct",
-        "messages": [
-            {"role": "system", "content": "You are a code explainer. Explain the code clearly."},
-            {"role": "user", "content": f"Explain the following code:\n\n{code}"}
-        ],
-        "max_tokens": 1000,
-        "temperature": 0.1
-    }
+    for model_name in fallback_models:
+        
+        payload = {
+            "model": model_name,
+            "messages": [
+                {"role": "system", "content": "You are a code explainer. Explain the code clearly."},
+                {"role": "user", "content": f"Explain the following code:\n\n{code}"}
+            ],
+            "max_tokens": 1000,
+            "temperature": 0.1
+        }
 
     try:
         response = requests.post(OPENROUTER_API_URL, headers=headers, json=payload, timeout=30)
